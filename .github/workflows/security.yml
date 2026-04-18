@@ -1,12 +1,11 @@
-name: Security Scan (SAST)
+name: CI/CD Security and Code Analysis
 
 on: [push, pull_request]
 
 jobs:
-  bandit-scan:
+  static-analysis:
     runs-on: ubuntu-latest
     env:
-      # Opt into Node.js 24 to resolve deprecation warnings in the runner
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
     steps:
       - name: Checkout Code
@@ -19,17 +18,24 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install bandit
+          pip install bandit pylint
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run Bandit Security Scan
-        # Bandit will exit with code 1 if it finds vulnerabilities, failing the step
+      - name: Run Code Analysis (Linting)
+        # Pylint checks for code quality, errors, and PEP8 compliance
+        # We use --exit-zero to ensure style warnings don't stop the whole pipeline
+        run: |
+          pylint --exit-zero app/ main.py > code_analysis_report.txt
+
+      - name: Run Security Checks (SAST)
+        # Bandit checks specifically for security vulnerabilities
         run: bandit -r . -f html -o bandit_report.html
 
-      - name: Archive Security Report
-        # This ensures the report is uploaded even if the "Run Bandit" step fails
+      - name: Archive Reports
         if: always() 
         uses: actions/upload-artifact@v4
         with:
-          name: bandit-security-report
-          path: bandit_report.html
+          name: security-and-analysis-reports
+          path: |
+            bandit_report.html
+            code_analysis_report.txt
