@@ -7,10 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Upgraded to v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5  # Upgraded to v5
         with:
           python-version: '3.12'
 
@@ -20,11 +20,11 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run Bandit Security Scan
-        # Executes recursive scan and generates an HTML report
+        # This will exit with a non-zero code if issues are found, failing the build
         run: bandit -r . -f html -o bandit_report.html
 
       - name: Archive Security Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  
         with:
           name: bandit-security-report
           path: bandit_report.html
