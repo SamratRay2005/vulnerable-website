@@ -6,7 +6,7 @@ jobs:
   bandit-scan:
     runs-on: ubuntu-latest
     env:
-      # Opt into Node.js 24 to resolve deprecation warnings from your logs
+      # Opt into Node.js 24 to resolve deprecation warnings in the runner
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
     steps:
       - name: Checkout Code
@@ -23,11 +23,12 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run Bandit Security Scan
-        # This will exit with code 1 if issues are found, effectively failing the build
+        # Bandit will exit with code 1 if it finds vulnerabilities, failing the step
         run: bandit -r . -f html -o bandit_report.html
 
       - name: Archive Security Report
-        # Upgraded to v4 to ensure compatibility and fix previous upload errors
+        # This ensures the report is uploaded even if the "Run Bandit" step fails
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: bandit-security-report
