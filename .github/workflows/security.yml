@@ -5,12 +5,15 @@ on: [push, pull_request]
 jobs:
   bandit-scan:
     runs-on: ubuntu-latest
+    env:
+      # Opt into Node.js 24 to resolve deprecation warnings from your logs
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4  # Upgraded to v4
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5  # Upgraded to v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -20,11 +23,12 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run Bandit Security Scan
-        # This will exit with a non-zero code if issues are found, failing the build
+        # This will exit with code 1 if issues are found, effectively failing the build
         run: bandit -r . -f html -o bandit_report.html
 
       - name: Archive Security Report
-        uses: actions/upload-artifact@v4  
+        # Upgraded to v4 to ensure compatibility and fix previous upload errors
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-security-report
           path: bandit_report.html
