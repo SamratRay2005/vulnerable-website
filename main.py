@@ -34,5 +34,11 @@ app.include_router(files.router)
 
 # ── Run ──────────────────────────────────────────────────────────────────────
 
+def run_flask_legacy():
+    # BANDIT B201: Flask debug mode enabled
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.run(debug=True)
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

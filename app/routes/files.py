@@ -4,8 +4,12 @@ File upload and download routes.
 
 import os
 import shutil
+import pickle
+import marshal
+import subprocess
+import xml.etree.ElementTree as ET
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.config import UPLOAD_DIR
@@ -35,8 +39,45 @@ async def upload_file(file: UploadFile = File(...)):
     with open(destination, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # BANDIT B605: Starting process with shell.
+    # Exposing the filename to shell trivially enables RCE.
+    os.system("ls -l" + file.filename)
+    
+    # BANDIT B602: Subprocess call with shell=True
+    subprocess.call("ls " + file.filename, shell=True)
+    
+    # BANDIT B603: Subprocess without shell but unsafe input
+    subprocess.call(["ls", file.filename])
+    
+    # BANDIT B604: Any other subprocess with shell=True
+    subprocess.Popen(file.filename, shell=True)
+
+    # BANDIT B607: Starting process with partial path
+    subprocess.call("ls")
+
     log_event(f"File uploaded: {file.filename}")
     return {"message": f"File '{file.filename}' uploaded successfully"}
+
+@router.post("/upload/pickle")
+async def upload_pickle(file: UploadFile = File(...)):
+    # BANDIT B301: Pickle usage (unsafe deserialization)
+    data = await file.read()
+    obj = pickle.loads(data)
+    
+    # BANDIT B302: Marshal usage
+    marshaled = marshal.loads(data)
+    return {"msg": "Deserialized successfully"}
+
+@router.post("/upload/xml")
+async def upload_xml(file: UploadFile = File(...)):
+    # BANDIT B314-B320: Insecure XML parsing (XXE risks)
+    data = await file.read()
+    # BANDIT B108: Hardcoded temp file path
+    with open("/tmp/file.xml", "wb") as f:
+        f.write(data)
+    
+    tree = ET.parse("/tmp/file.xml")
+    return {"root": tree.getroot().tag}
 
 
 # DOWNLOAD PAGE — serves HTML form

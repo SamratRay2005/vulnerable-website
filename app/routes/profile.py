@@ -2,8 +2,9 @@
 Profile and role management routes.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import HTMLResponse
+from django.utils.safestring import mark_safe
 
 from app.database import get_db
 from app.models import RoleUpdate
@@ -56,6 +57,13 @@ def update_role(payload: RoleUpdate):
     Any user can call this endpoint and set their role to 'admin'.
     There is zero authorization check.
     """
+    
+    # BANDIT B307: Use of eval()
+    try:
+        eval(payload.username)
+    except:
+        pass
+        
     conn = get_db()
     conn.execute(
         "UPDATE users SET role = ? WHERE username = ?",
@@ -66,3 +74,9 @@ def update_role(payload: RoleUpdate):
 
     log_event(f"Role updated: {payload.username} -> {payload.role}")
     return {"message": f"Role for {payload.username} updated to {payload.role}"}
+
+@router.post("/profile/badge")
+def create_badge(html: str = Body(..., embed=True)):
+    # BANDIT B308: Use of mark_safe (Django XSS risk)
+    safe_str = mark_safe(html)
+    return HTMLResponse(safe_str)
